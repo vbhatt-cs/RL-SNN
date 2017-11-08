@@ -3,7 +3,7 @@ import numpy as np
 
 import env
 from models.neurons import LIF
-from models.synapses import GapRL
+from models.synapses import GapRL, Activator
 
 
 def visualise_connectivity(S):
@@ -40,9 +40,9 @@ def inp_rates(idx):
     return r * b.Hz
 
 
-@b.check_units(v=b.volt, dt=b.second, result=1)
-def sigma(v, dt):
-    sv = dt / tau_sigma * b.exp(beta_sigma * (v - th_i))
+@b.check_units(voltage=b.volt, dt=b.second, result=1)
+def sigma(voltage, dt):
+    sv = dt / tau_sigma * b.exp(beta_sigma * (voltage - th_i))
     sv.clip(0, 1)
     return sv
 
@@ -52,26 +52,31 @@ def get_reward(idx):
     return e.r
 
 
-@b.check_units(idx=1, result=1)
-def get_reward(idx):
-    return e.r
+@b.check_units(activation=1, idx=1, result=1)
+def act(activation, idx):
+    activation.clip(0, 1)
+    l_idx = b.arange(len(idx), step=2)
+    r_idx = l_idx + 1
 
+    a_avg = (activation[l_idx] + activation[r_idx]) / 2
 
-"""
-Hidden layer is purely eq
-Output is connected to synapse which calculates a
-Neuron layer after that receives a and calls the step function regularly
-"""
+    l_idx = b.arange(len(a_avg), step=2)
+    r_idx = l_idx + 1
+
+    theta = (a_avg[l_idx] - a_avg[r_idx]) * theta_max
+    e.step(theta)
+    return 0
+
 
 b.defaultclock.dt = 0.1 * b.ms
 b.prefs.codegen.target = 'numpy'
 
-num_parts = 5
+num_parts = 20
 theta_max = 25.0
 e = env.WormFoodEnv((2, 3), num_parts=num_parts, theta_max=theta_max)
 
 N_i = num_parts * 4
-N_h = 20
+N_h = 200
 N_o = num_parts * 4
 
 inp_eq = 'rates: Hz '
@@ -116,17 +121,39 @@ ih_group.run_regularly('w = clip(w + gamma * r * z, w_min, w_max)', dt=b.default
 hh_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
 hh_group.run_regularly('w = clip(w + gamma * r * z, w_min, w_max)', dt=b.defaultclock.dt)
 
+act_n_eq = '''a : 1
+        dummy : 1
+        '''
+act_group = b.NeuronGroup(N_o, act_n_eq)
+act_group.run_regularly('dummy = act(a, i)', dt=b.defaultclock.dt)
+
+tau_e = 2 * b.second
+nu_e = 25 * b.Hz
+syn_oa = Activator(tau_e, nu_e)
+oa_group = b.Synapses(op_group, act_group, model=syn_oa.model, on_pre=syn_oa.on_pre)
+oa_group.connect(j='i')
 
 # spikemon = b.SpikeMonitor(inp_group)
-# # M = b.StateMonitor(inp_group, 'rates', record=True)
+# M = b.StateMonitor(inp_group, 'rates', record=True)
+# M1 = b.StateMonitor(hidden_group, 'v', record=True)
 #
-b.run(100 * b.ms)
+# print ih_group.w, hh_group.w
+print e.disToFood
+b.run(10 * b.second)
+print e.disToFood
+# print ih_group.w, hh_group.w
 #
-# # for ri in M.rates:
-# #     b.plot(M.t / b.ms, ri / b.Hz)
-#
+# b.figure()
 # b.plot(spikemon.t / b.second, spikemon.i, '.k')
 # b.xlabel('Time (in s)')
 # b.ylabel('Neuron index')
+
+# b.figure()
+# for ri in M.rates:
+#     b.plot(M.t / b.ms, ri / b.Hz)
+
+# b.figure()
+# for v in M1.v:
+#     b.plot(M.t / b.ms, v / b.mV)
 #
-b.show()
+# b.show()

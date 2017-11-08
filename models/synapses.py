@@ -18,3 +18,15 @@ class GapRL:
                     z += zeta * (1 + sig) / (1 - sig)  
                     zeta = 0 / volt
                     '''
+
+
+class Activator:
+    def __init__(self, tau_e, nu_e):
+        self.model = '''
+                    a_post = a1 : 1 (summed)
+                    da1/dt = -a1 / tau_e : 1 (clock-driven)
+                    '''
+
+        self.on_pre = '''
+                    a1 += 1 - exp(-1/(nu_e * tau_e))
+                    '''
