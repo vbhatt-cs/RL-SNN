@@ -18,9 +18,12 @@ class WormFoodEnv:
         self.disToFood = Point(self.worm[-1].coords[1]).distance(self.food)
         self.angles = np.zeros(num_parts, dtype=np.float64)
         self.r = 0
+        self.d_history = []
 
     def step(self, theta):
         assert len(theta) == self.num_parts, "Number of outputs doesn't match the number of parts"
+        assert np.sum(theta > self.theta_max) == 0, "Theta out of bounds"
+        assert np.sum(theta < -self.theta_max) == 0, "Theta out of bounds"
 
         rel_theta = np.zeros(self.num_parts)
 
@@ -38,6 +41,7 @@ class WormFoodEnv:
         else:
             self.r = -1
         self.disToFood = d
+        self.d_history.append(d)
 
         left_angle = self.theta_max - self.angles
         right_angle = self.angles + self.theta_max
@@ -78,3 +82,20 @@ class WormFoodEnv:
         bound = self.num_parts + 2
         plt.axis([-bound, bound, -bound, bound])
         plt.pause(0.05)
+
+    def plot(self):
+        xy = [l.xy for l in self.worm]
+
+        x = [p[0][0] for p in xy]
+        x.append(xy[-1][0][1])
+        y = [p[1][0] for p in xy]
+        y.append(xy[-1][1][1])
+
+        ax = np.asarray(x)
+        ay = np.asarray(y)
+
+        plt.plot(ax, ay)
+        plt.scatter(self.food.xy[0], self.food.xy[1])
+
+        bound = self.num_parts + 2
+        plt.axis([-bound, bound, -bound, bound])

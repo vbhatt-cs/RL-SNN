@@ -35,15 +35,15 @@ def inp_rates(idx):
     l_idx = b.arange(len(idx), step=2)
     r_idx = l_idx + 1
     r = np.zeros(len(idx))
-    r[l_idx] = la / theta_max * 50
-    r[r_idx] = ra / theta_max * 50
+    r[l_idx] = la
+    r[r_idx] = ra
     return r * b.Hz
 
 
 @b.check_units(voltage=b.volt, dt=b.second, result=1)
 def sigma(voltage, dt):
     sv = dt / tau_sigma * b.exp(beta_sigma * (voltage - th_i))
-    sv.clip(0, 1)
+    sv = sv.clip(0, 1 - 1e-8)
     return sv
 
 
@@ -54,7 +54,7 @@ def get_reward(idx):
 
 @b.check_units(activation=1, idx=1, result=1)
 def act(activation, idx):
-    activation.clip(0, 1)
+    activation = activation.clip(0, 1)
     l_idx = b.arange(len(idx), step=2)
     r_idx = l_idx + 1
 
@@ -65,18 +65,19 @@ def act(activation, idx):
 
     theta = (a_avg[l_idx] - a_avg[r_idx]) * theta_max
     e.step(theta)
-    return 0
+    return activation
 
 
 b.defaultclock.dt = 0.1 * b.ms
 b.prefs.codegen.target = 'numpy'
+np.random.seed(0)
 
-num_parts = 20
+num_parts = 5
 theta_max = 25.0
 e = env.WormFoodEnv((2, 3), num_parts=num_parts, theta_max=theta_max)
 
 N_i = num_parts * 4
-N_h = 200
+N_h = num_parts * 10
 N_o = num_parts * 4
 
 inp_eq = 'rates: Hz '
@@ -95,6 +96,7 @@ lif = LIF(tau_i, v_r, sigma, tau_sigma, beta_sigma)
 neuron_group = b.NeuronGroup(N_h + N_o, lif.equ, threshold=lif.threshold, reset=lif.reset)
 hidden_group = neuron_group[:N_h]
 op_group = neuron_group[N_h:]
+neuron_group.v = v_r
 
 tau_z = 5 * b.ms
 w_min_i = -0.1 * b.mV
@@ -110,22 +112,29 @@ syn_hh = GapRL(get_reward, sigma, tau_z, tau_i, gamma, w_min, w_max, beta_sigma)
 ih_group = b.Synapses(inp_group, neuron_group, model=syn_ih.model, on_pre=syn_ih.on_pre, on_post=syn_ih.on_post)
 hh_group = b.Synapses(neuron_group, neuron_group, model=syn_hh.model, on_pre=syn_hh.on_pre, on_post=syn_hh.on_post)
 
-ih_group.connect(p=0.15)
-hh_group.connect(p=0.15)
+# ih_group.connect(p=0.15)
+# hh_group.connect(p=0.15)
+
+for _i in range(N_i):
+    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
+    ih_group.connect(i=_i, j=fanout)
+
+for _i in range(N_h + N_o):
+    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
+    hh_group.connect(i=_i, j=fanout)
 
 ih_group.w = np.random.uniform(w_min_i, w_max_i, ih_group.w.shape) * b.volt
 hh_group.w = np.random.uniform(w_min, w_max, hh_group.w.shape) * b.volt
 
 ih_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
-ih_group.run_regularly('w = clip(w + gamma * r * z, w_min, w_max)', dt=b.defaultclock.dt)
+ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
+ih_group.run_regularly('w = clip(w + gamma * r * z, w_min_i, w_max_i)', dt=b.defaultclock.dt)
 hh_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
+ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
 hh_group.run_regularly('w = clip(w + gamma * r * z, w_min, w_max)', dt=b.defaultclock.dt)
 
-act_n_eq = '''a : 1
-        dummy : 1
-        '''
-act_group = b.NeuronGroup(N_o, act_n_eq)
-act_group.run_regularly('dummy = act(a, i)', dt=b.defaultclock.dt)
+act_group = b.NeuronGroup(N_o, 'a : 1')
+act_group.run_regularly('a = act(a, i)', dt=b.defaultclock.dt)
 
 tau_e = 2 * b.second
 nu_e = 25 * b.Hz
@@ -134,26 +143,40 @@ oa_group = b.Synapses(op_group, act_group, model=syn_oa.model, on_pre=syn_oa.on_
 oa_group.connect(j='i')
 
 # spikemon = b.SpikeMonitor(inp_group)
-# M = b.StateMonitor(inp_group, 'rates', record=True)
-# M1 = b.StateMonitor(hidden_group, 'v', record=True)
-#
-# print ih_group.w, hh_group.w
+# spikemon1 = b.SpikeMonitor(neuron_group)
+M = b.StateMonitor(hh_group, 'z', record=True)
+M1 = b.StateMonitor(ih_group, 'w', record=True)
+M2 = b.StateMonitor(hh_group, 'w', record=True)
+
 print e.disToFood
-b.run(10 * b.second)
+b.run(1 * b.second)
 print e.disToFood
-# print ih_group.w, hh_group.w
+e.plot()
+b.figure()
+b.plot(e.d_history)
+
+# b.figure()
+# b.plot(spikemon.t / b.ms, spikemon.i, '.k')
+# b.xlabel('Time (in ms)')
+# b.ylabel('Neuron index')
 #
 # b.figure()
-# b.plot(spikemon.t / b.second, spikemon.i, '.k')
-# b.xlabel('Time (in s)')
+# b.plot(spikemon1.t / b.ms, spikemon1.i, '.k')
+# b.xlabel('Time (in ms)')
 # b.ylabel('Neuron index')
 
-# b.figure()
-# for ri in M.rates:
-#     b.plot(M.t / b.ms, ri / b.Hz)
+b.figure()
+for zi in M.z[:5]:
+    b.plot(M.t / b.ms, zi * b.mV)
 
 # b.figure()
-# for v in M1.v:
-#     b.plot(M.t / b.ms, v / b.mV)
-#
-# b.show()
+# for zi in M1.z1[:2]:
+#     b.plot(M.t / b.ms, zi * b.mV)
+
+b.figure()
+b.subplot(2, 1, 1)
+b.plot(M1.t / b.ms, M1.w.mean(0) / b.mV)
+b.subplot(2, 1, 2)
+b.plot(M2.t / b.ms, M2.w.mean(0) / b.mV)
+
+b.show()

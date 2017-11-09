@@ -7,6 +7,7 @@ class GapRL:
                     z = z1 - zeta * sig / (1 - sig) : 1 / volt (constant over dt)
                     dzeta/dt = -zeta / tau_i : 1 / volt (clock-driven)
                     w : volt
+                    zeta_temp = zeta : 1 / volt (constant over dt)
                     '''
 
         self.on_pre = '''
@@ -15,8 +16,8 @@ class GapRL:
                     '''
 
         self.on_post = '''
-                    z += zeta * (1 + sig) / (1 - sig)  
-                    zeta = 0 / volt
+                    z += zeta * 1 / (1 - sig)  
+                    zeta_temp = 0 / volt
                     '''
 
 
