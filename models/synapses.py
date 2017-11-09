@@ -3,21 +3,20 @@ class GapRL:
         self.model = '''
                     r = get_reward(i) : 1 (constant over dt)
                     sig = sigma(v_post, dt) : 1 (constant over dt)
+                    f = int(rand() < sig) : 1 (constant over dt)
                     dz1/dt = -z1 / tau_z : 1 / volt (clock-driven)
-                    z = z1 - zeta * sig / (1 - sig) : 1 / volt (constant over dt)
-                    dzeta1/dt = -zeta1 / tau_i : 1 / volt (clock-driven)
+                    z = z1 + f * zeta - (1-f) * zeta * sig / (1 - sig) : 1 / volt (constant over dt)
+                    dzeta/dt = -zeta / tau_i : 1 / volt (clock-driven)
                     w : volt
-                    zeta = zeta1 : 1 / volt (constant over dt)
                     '''
 
         self.on_pre = '''
                     v_post += w
-                    zeta1 += beta_sigma
+                    zeta += beta_sigma
                     '''
 
         self.on_post = '''
-                    z += zeta * 1 / (1 - sig)  
-                    zeta1 = 0 / volt
+                    zeta = 0 / volt
                     '''
 
 

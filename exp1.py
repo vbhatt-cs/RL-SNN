@@ -68,7 +68,7 @@ def act(activation, idx):
     return activation
 
 
-b.defaultclock.dt = 0.1 * b.ms
+b.defaultclock.dt = 1 * b.ms
 b.prefs.codegen.target = 'numpy'
 np.random.seed(0)
 
@@ -127,10 +127,8 @@ ih_group.w = np.random.uniform(w_min_i, w_max_i, ih_group.w.shape) * b.volt
 hh_group.w = np.random.uniform(w_min, w_max, hh_group.w.shape) * b.volt
 
 ih_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
-# ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
 ih_group.run_regularly('w = clip(w + gamma * r * z, w_min_i, w_max_i)', dt=b.defaultclock.dt)
 hh_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
-# ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
 hh_group.run_regularly('w = clip(w + gamma * r * z, w_min, w_max)', dt=b.defaultclock.dt)
 
 act_group = b.NeuronGroup(N_o, 'a : 1')
@@ -144,7 +142,7 @@ oa_group.connect(j='i')
 
 # spikemon = b.SpikeMonitor(inp_group)
 # spikemon1 = b.SpikeMonitor(neuron_group)
-# M = b.StateMonitor(hh_group, ['z', 'zeta', 'zeta1'], record=True)
+# M = b.StateMonitor(hh_group, ['z', 'zeta'], record=True)
 # M1 = b.StateMonitor(ih_group, 'w', record=True)
 # M2 = b.StateMonitor(hh_group, 'w', record=True)
 
@@ -166,11 +164,7 @@ b.plot(e.d_history)
 # b.ylabel('Neuron index')
 
 # b.figure()
-# b.subplot(2, 1, 1)
 # for zi in M.zeta[:5]:
-#     b.plot(M.t / b.ms, zi)
-# b.subplot(2, 1, 2)
-# for zi in M.zeta1[:5]:
 #     b.plot(M.t / b.ms, zi)
 #
 # b.figure()
