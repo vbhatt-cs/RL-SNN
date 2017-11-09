@@ -68,7 +68,7 @@ def act(activation, idx):
     return activation
 
 
-b.defaultclock.dt = 0.1 * b.ms
+b.defaultclock.dt = 1 * b.ms
 b.prefs.codegen.target = 'numpy'
 np.random.seed(0)
 
@@ -116,21 +116,19 @@ hh_group = b.Synapses(neuron_group, neuron_group, model=syn_hh.model, on_pre=syn
 # hh_group.connect(p=0.15)
 
 for _i in range(N_i):
-    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
+    fanout = np.random.permutation(N_h + N_o)[:int((N_h + N_o) * 15 / 100)]
     ih_group.connect(i=_i, j=fanout)
 
 for _i in range(N_h + N_o):
-    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
+    fanout = np.random.permutation(N_h + N_o)[:int((N_h + N_o) * 15 / 100)]
     hh_group.connect(i=_i, j=fanout)
 
 ih_group.w = np.random.uniform(w_min_i, w_max_i, ih_group.w.shape) * b.volt
 hh_group.w = np.random.uniform(w_min, w_max, hh_group.w.shape) * b.volt
 
 ih_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
-# ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
 ih_group.run_regularly('w = clip(w + gamma * r * z, w_min_i, w_max_i)', dt=b.defaultclock.dt)
 hh_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
-# ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
 hh_group.run_regularly('w = clip(w + gamma * r * z, w_min, w_max)', dt=b.defaultclock.dt)
 
 act_group = b.NeuronGroup(N_o, 'a : 1')
@@ -144,12 +142,13 @@ oa_group.connect(j='i')
 
 # spikemon = b.SpikeMonitor(inp_group)
 # spikemon1 = b.SpikeMonitor(neuron_group)
-# M = b.StateMonitor(hh_group, ['z', 'zeta', 'zeta1'], record=True)
+# M = b.StateMonitor(hh_group, ['z', 'zeta'], record=True)
 # M1 = b.StateMonitor(ih_group, 'w', record=True)
 # M2 = b.StateMonitor(hh_group, 'w', record=True)
+# Ma = b.StateMonitor(oa_group, 'a', record=True)
 
 print e.disToFood
-b.run(5 * b.second)
+b.run(10 * b.second)
 print e.disToFood
 e.plot()
 b.figure()
@@ -164,13 +163,13 @@ b.plot(e.d_history)
 # b.plot(spikemon1.t / b.ms, spikemon1.i, '.k')
 # b.xlabel('Time (in ms)')
 # b.ylabel('Neuron index')
-
+#
 # b.figure()
-# b.subplot(2, 1, 1)
+# for ai in Ma.a[:5]:
+#     b.plot(Ma.t / b.ms, ai)
+#
+# b.figure()
 # for zi in M.zeta[:5]:
-#     b.plot(M.t / b.ms, zi)
-# b.subplot(2, 1, 2)
-# for zi in M.zeta1[:5]:
 #     b.plot(M.t / b.ms, zi)
 #
 # b.figure()
