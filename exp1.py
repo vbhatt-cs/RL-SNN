@@ -116,11 +116,11 @@ hh_group = b.Synapses(neuron_group, neuron_group, model=syn_hh.model, on_pre=syn
 # hh_group.connect(p=0.15)
 
 for _i in range(N_i):
-    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
+    fanout = np.random.permutation(N_h + N_o)[:int((N_h + N_o) * 15 / 100)]
     ih_group.connect(i=_i, j=fanout)
 
 for _i in range(N_h + N_o):
-    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
+    fanout = np.random.permutation(N_h + N_o)[:int((N_h + N_o) * 15 / 100)]
     hh_group.connect(i=_i, j=fanout)
 
 ih_group.w = np.random.uniform(w_min_i, w_max_i, ih_group.w.shape) * b.volt
@@ -145,9 +145,10 @@ oa_group.connect(j='i')
 # M = b.StateMonitor(hh_group, ['z', 'zeta'], record=True)
 # M1 = b.StateMonitor(ih_group, 'w', record=True)
 # M2 = b.StateMonitor(hh_group, 'w', record=True)
+# Ma = b.StateMonitor(oa_group, 'a', record=True)
 
 print e.disToFood
-b.run(5 * b.second)
+b.run(10 * b.second)
 print e.disToFood
 e.plot()
 b.figure()
@@ -162,7 +163,11 @@ b.plot(e.d_history)
 # b.plot(spikemon1.t / b.ms, spikemon1.i, '.k')
 # b.xlabel('Time (in ms)')
 # b.ylabel('Neuron index')
-
+#
+# b.figure()
+# for ai in Ma.a[:5]:
+#     b.plot(Ma.t / b.ms, ai)
+#
 # b.figure()
 # for zi in M.zeta[:5]:
 #     b.plot(M.t / b.ms, zi)
