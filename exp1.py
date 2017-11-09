@@ -72,9 +72,9 @@ b.defaultclock.dt = 0.1 * b.ms
 b.prefs.codegen.target = 'numpy'
 np.random.seed(0)
 
-num_parts = 5
+num_parts = 20
 theta_max = 25.0
-e = env.WormFoodEnv((2, 3), num_parts=num_parts, theta_max=theta_max)
+e = env.WormFoodEnv((5, 3), num_parts=num_parts, theta_max=theta_max)
 
 N_i = num_parts * 4
 N_h = num_parts * 10
@@ -127,10 +127,10 @@ ih_group.w = np.random.uniform(w_min_i, w_max_i, ih_group.w.shape) * b.volt
 hh_group.w = np.random.uniform(w_min, w_max, hh_group.w.shape) * b.volt
 
 ih_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
-ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
+# ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
 ih_group.run_regularly('w = clip(w + gamma * r * z, w_min_i, w_max_i)', dt=b.defaultclock.dt)
 hh_group.run_regularly('z1 = z', dt=b.defaultclock.dt)
-ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
+# ih_group.run_regularly('zeta = zeta_temp', dt=b.defaultclock.dt)
 hh_group.run_regularly('w = clip(w + gamma * r * z, w_min, w_max)', dt=b.defaultclock.dt)
 
 act_group = b.NeuronGroup(N_o, 'a : 1')
@@ -144,12 +144,12 @@ oa_group.connect(j='i')
 
 # spikemon = b.SpikeMonitor(inp_group)
 # spikemon1 = b.SpikeMonitor(neuron_group)
-M = b.StateMonitor(hh_group, 'z', record=True)
-M1 = b.StateMonitor(ih_group, 'w', record=True)
-M2 = b.StateMonitor(hh_group, 'w', record=True)
+# M = b.StateMonitor(hh_group, ['z', 'zeta', 'zeta1'], record=True)
+# M1 = b.StateMonitor(ih_group, 'w', record=True)
+# M2 = b.StateMonitor(hh_group, 'w', record=True)
 
 print e.disToFood
-b.run(1 * b.second)
+b.run(5 * b.second)
 print e.disToFood
 e.plot()
 b.figure()
@@ -165,18 +165,22 @@ b.plot(e.d_history)
 # b.xlabel('Time (in ms)')
 # b.ylabel('Neuron index')
 
-b.figure()
-for zi in M.z[:5]:
-    b.plot(M.t / b.ms, zi * b.mV)
-
 # b.figure()
-# for zi in M1.z1[:2]:
-#     b.plot(M.t / b.ms, zi * b.mV)
-
-b.figure()
-b.subplot(2, 1, 1)
-b.plot(M1.t / b.ms, M1.w.mean(0) / b.mV)
-b.subplot(2, 1, 2)
-b.plot(M2.t / b.ms, M2.w.mean(0) / b.mV)
+# b.subplot(2, 1, 1)
+# for zi in M.zeta[:5]:
+#     b.plot(M.t / b.ms, zi)
+# b.subplot(2, 1, 2)
+# for zi in M.zeta1[:5]:
+#     b.plot(M.t / b.ms, zi)
+#
+# b.figure()
+# for zi in M.z[:5]:
+#     b.plot(M.t / b.ms, zi)
+#
+# b.figure()
+# b.subplot(2, 1, 1)
+# b.plot(M1.t / b.ms, M1.w.mean(0) / b.mV)
+# b.subplot(2, 1, 2)
+# b.plot(M2.t / b.ms, M2.w.mean(0) / b.mV)
 
 b.show()
