@@ -1,6 +1,5 @@
 from shapely.geometry import LineString, Point, MultiLineString
 from shapely import affinity
-from shapely import ops
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,7 +17,7 @@ class WormFoodEnv:
         self.disToFood = Point(self.worm[-1].coords[1]).distance(self.food)
         self.angles = np.zeros(num_parts, dtype=np.float64)
         self.r = 0
-        self.d_history = []
+        self.d_history = [self.disToFood]
 
     def step(self, theta):
         assert len(theta) == self.num_parts, "Number of outputs doesn't match the number of parts"
@@ -36,10 +35,30 @@ class WormFoodEnv:
 
         d = Point(self.worm[-1].coords[1]).distance(self.food)
 
+        # if d < 1:
+        #     self.r = 1
+        # elif d < 2:
+        #     self.r = 0.8
+        # elif d < 3:
+        #     self.r = 0.6
+        # elif d < 5:
+        #     self.r = 0.2
+        # elif d < 10:
+        #     self.r = 0
+        # else:
+        #     self.r = -1
+
         if d < self.disToFood:
             self.r = 1
         else:
             self.r = -1
+
+        if d < 1:
+            self.r += 1
+
+        if d < 0.1:
+            self.r += 2
+
         self.disToFood = d
         self.d_history.append(d)
 
@@ -94,6 +113,7 @@ class WormFoodEnv:
         ax = np.asarray(x)
         ay = np.asarray(y)
 
+        plt.figure()
         plt.plot(ax, ay)
         plt.scatter(self.food.xy[0], self.food.xy[1])
 

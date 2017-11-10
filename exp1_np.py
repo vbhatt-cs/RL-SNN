@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import tqdm
 
 import env
 
@@ -18,7 +19,7 @@ def inp_rates(_e, idx):
 
 def sigma(_v, _th, _dt, _tau, _beta):
     sv = _dt / _tau * np.exp(_beta * (_v - _th))
-    sv = sv.clip(0, 1)
+    sv = sv.clip(0, 1 - 1e-8)
     return sv
 
 
@@ -44,7 +45,7 @@ def act(_a, idx):
 rng = np.random.RandomState(0)
 num_parts = 20
 theta_max = 25.0
-e = env.WormFoodEnv((5, 15), num_parts=num_parts, theta_max=theta_max)
+e = env.WormFoodEnv((6, 6), num_parts=num_parts, theta_max=theta_max)
 
 N_i = num_parts * 4
 N_h = num_parts * 10
@@ -68,12 +69,12 @@ f_h = np.zeros(N_o + N_h, dtype=np.bool_)
 tau_z = 5e-3
 w_min_i = -0.1e-3
 w_max_i = 1.5e-3
-gamma_i = 0.025 * (w_max_i - w_min_i) * 1e-3
+gamma_i = 0.25 * (w_max_i - w_min_i) * 1e-3
 
 # Synapses from hidden and output neurons
 w_min = -0.4e-3
 w_max = 1e-3
-gamma = 0.025 * (w_max - w_min) * 1e-3
+gamma = 0.25 * (w_max - w_min) * 1e-3
 
 # Synapse variables
 syn_ih_conn = np.zeros((N_i, N_h + N_o), dtype=np.bool_)
@@ -106,15 +107,20 @@ activations = np.zeros(N_o)
 tau_e = 2
 nu_e = 25
 
-# # Monitoring
+# Monitoring
 # V_h_mon = []
 # f_i_mon_i = []
 # f_i_mon_t = []
+# f_h_mon_i = []
+# f_h_mon_t = []
+# z_mon = []
+# zeta_mon = []
+# w_mon = []
 
 print e.disToFood
 
 # Run simulation
-for t in np.arange(0, T, dt):
+for t in tqdm.tqdm(np.arange(0, T, dt)):
     # if int(t / dt) % 100 == 0:
     #     e.render()
 
@@ -154,14 +160,37 @@ for t in np.arange(0, T, dt):
     syn_hh_w += gamma * get_reward(e) * syn_hh_z
     syn_hh_w = syn_hh_w.clip(w_min, w_max)
 
+    # if int(t / dt) % 1000 == 0:
+    #     gamma_i *= 0.5
+    #     gamma *= 0.5
+
     # for _n in np.where(f_i == 1)[0]:
     #     f_i_mon_i.append(_n)
     #     f_i_mon_t.append(t)
+
+    # for _n in np.where(f_h == 1)[0]:
+    #     f_h_mon_i.append(_n)
+    #     f_h_mon_t.append(t)
+
+    # z_mon.append(syn_ih_z[2][1])
+    # zeta_mon.append(syn_ih_zeta[2][1])
+    # w_mon.append(syn_ih_w[2][1])
 
 print e.disToFood
 e.plot()
 plt.figure()
 plt.plot(e.d_history)
 
+# plt.figure()
 # plt.plot(f_i_mon_t, f_i_mon_i, '.k')
+# plt.figure()
+# plt.plot(f_h_mon_t, f_h_mon_i, '.k')
+
+# plt.figure()
+# plt.plot(z_mon)
+# plt.plot(zeta_mon)
+#
+# plt.figure()
+# plt.plot(w_mon)
+
 plt.show()
