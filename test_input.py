@@ -7,15 +7,13 @@ import env
 @b.check_units(idx=1, result=b.Hz)
 def inp_rates(idx):
     la, ra = e.test_inp()
-    print la, ra
     la = la.repeat(2)
     ra = ra.repeat(2)
     l_idx = b.arange(len(idx), step=2)
     r_idx = l_idx + 1
     r = np.zeros(len(idx))
-    r[l_idx] = la / theta_max * 50
-    r[r_idx] = ra / theta_max * 50
-    print r
+    r[l_idx] = la
+    r[r_idx] = ra
     return r * b.Hz
 
 

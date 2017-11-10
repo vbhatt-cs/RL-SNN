@@ -65,6 +65,7 @@ def act(activation, idx):
 
     theta = (a_avg[l_idx] - a_avg[r_idx]) * theta_max
     e.step(theta)
+    e.render()
     return activation
 
 
@@ -74,7 +75,7 @@ np.random.seed(0)
 
 num_parts = 20
 theta_max = 25.0
-e = env.WormFoodEnv((5, 3), num_parts=num_parts, theta_max=theta_max)
+e = env.WormFoodEnv((5, 15), num_parts=num_parts, theta_max=theta_max)
 
 N_i = num_parts * 4
 N_h = num_parts * 10
@@ -87,7 +88,7 @@ inp_group = b.NeuronGroup(N_i, inp_eq, threshold=inp_th)
 inp_group.run_regularly('rates=inp_rates(i)', dt=b.defaultclock.dt)
 
 tau_i = 20 * b.ms  # Time constant for LIF leak
-v_r = 10 * b.mV  # Reset potential
+v_r = 0 * b.mV  # Reset potential
 th_i = 16 * b.mV  # Threshold potential
 tau_sigma = 20 * b.ms
 beta_sigma = 0.2 / b.mV
@@ -116,11 +117,11 @@ hh_group = b.Synapses(neuron_group, neuron_group, model=syn_hh.model, on_pre=syn
 # hh_group.connect(p=0.15)
 
 for _i in range(N_i):
-    fanout = np.random.permutation(N_h + N_o)[:int((N_h + N_o) * 15 / 100)]
+    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
     ih_group.connect(i=_i, j=fanout)
 
 for _i in range(N_h + N_o):
-    fanout = np.random.permutation(N_h + N_o)[:int((N_h + N_o) * 15 / 100)]
+    fanout = np.random.permutation(N_h + N_o)[:int(N_h + N_o * 15 / 100)]
     hh_group.connect(i=_i, j=fanout)
 
 ih_group.w = np.random.uniform(w_min_i, w_max_i, ih_group.w.shape) * b.volt
@@ -148,7 +149,7 @@ oa_group.connect(j='i')
 # Ma = b.StateMonitor(oa_group, 'a', record=True)
 
 print e.disToFood
-b.run(10 * b.second)
+b.run(1 * b.second)
 print e.disToFood
 e.plot()
 b.figure()
