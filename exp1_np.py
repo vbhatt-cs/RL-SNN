@@ -45,13 +45,13 @@ def act(_a, idx):
 rng = np.random.RandomState(0)
 num_parts = 20
 theta_max = 25.0
-e = env.WormFoodEnv((6, 6), num_parts=num_parts, theta_max=theta_max)
+e = env.WormFoodEnv((11, 11), num_parts=num_parts, theta_max=theta_max)
 
 N_i = num_parts * 4
 N_h = num_parts * 10
 N_o = num_parts * 4
 
-T = 30
+T = 300
 dt = 1e-3
 
 # Neurons
@@ -67,14 +67,18 @@ f_h = np.zeros(N_o + N_h, dtype=np.bool_)
 
 # Synapses
 tau_z = 5e-3
-w_min_i = -0.1e-3
-w_max_i = 1.5e-3
+# a_plus = 1.05
+# a_minus = 0.005
+w_min_i = -0.1e-3 * 5
+w_max_i = 1.5e-3 * 5
 gamma_i = 0.25 * (w_max_i - w_min_i) * 1e-3
+# gamma_i = 1e-6
 
 # Synapses from hidden and output neurons
 w_min = -0.4e-3
 w_max = 1e-3
 gamma = 0.25 * (w_max - w_min) * 1e-3
+# gamma = 1e-6
 
 # Synapse variables
 syn_ih_conn = np.zeros((N_i, N_h + N_o), dtype=np.bool_)
@@ -83,8 +87,14 @@ syn_ih_w = np.zeros((N_i, N_h + N_o))
 syn_hh_w = np.zeros((N_h + N_o, N_h + N_o))
 syn_ih_z = np.zeros((N_i, N_h + N_o))
 syn_hh_z = np.zeros((N_h + N_o, N_h + N_o))
+
 syn_ih_grad_V = np.zeros((N_i, N_h + N_o))
 syn_hh_grad_V = np.zeros((N_h + N_o, N_h + N_o))
+# syn_ih_p_plus = np.zeros((N_i, N_h + N_o))
+# syn_ih_p_minus = np.zeros((N_i, N_h + N_o))
+# syn_hh_p_plus = np.zeros((N_h + N_o, N_h + N_o))
+# syn_hh_p_minus = np.zeros((N_h + N_o, N_h + N_o))
+
 syn_ih_zeta = np.zeros((N_i, N_h + N_o))
 syn_hh_zeta = np.zeros((N_h + N_o, N_h + N_o))
 n_conn = int((N_h + N_o) * 0.15)
@@ -130,6 +140,14 @@ for t in tqdm.tqdm(np.arange(0, T, dt)):
     # V_h(t)
     V_h = V_h * np.exp(-dt / tau_i) + (syn_ih_conn * syn_ih_w).T.dot(f_i) + (syn_hh_conn * syn_hh_w).T.dot(f_h)
 
+    # # p+(t)
+    # syn_ih_p_plus = syn_ih_p_plus * np.exp(-dt / tau_i) + a_plus * f_i[:, np.newaxis]
+    # syn_hh_p_plus = syn_hh_p_plus * np.exp(-dt / tau_i) + a_plus * f_h[:, np.newaxis]
+    #
+    # # p-(t)
+    # syn_ih_p_minus = syn_ih_p_minus * np.exp(-dt / tau_i) + a_minus * f_h
+    # syn_hh_p_minus = syn_hh_p_minus * np.exp(-dt / tau_i) + a_minus * f_h
+
     # f_i(t)
     f_i = rng.rand(N_i) < rates * dt
 
@@ -145,6 +163,10 @@ for t in tqdm.tqdm(np.arange(0, T, dt)):
     # zeta(t)
     syn_ih_zeta = beta_sigma * syn_ih_grad_V * f_h - beta_sigma * sig / (1 - sig) * syn_ih_grad_V * (1 - f_h)
     syn_hh_zeta = beta_sigma * syn_hh_grad_V * f_h - beta_sigma * sig / (1 - sig) * syn_hh_grad_V * (1 - f_h)
+
+    # # zeta(t)
+    # syn_ih_zeta = syn_ih_p_plus * f_h + syn_ih_p_minus * f_i[:, np.newaxis]
+    # syn_hh_zeta = syn_hh_p_plus * f_h + syn_hh_p_minus * f_h[:, np.newaxis]
 
     # Action
     activations = activations * np.exp(-dt / tau_e) + (1 - np.exp(-1 / (nu_e * tau_e))) * f_h[N_h:]
