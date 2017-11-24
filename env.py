@@ -53,11 +53,11 @@ class WormFoodEnv:
         else:
             self.r = -1
 
-        if d < 1:
-            self.r += 1
-
-        if d < 0.1:
-            self.r += 2
+        # if d < 1:
+        #     self.r += 1
+        #
+        # if d < 0.1:
+        #     self.r += 2
 
         self.disToFood = d
         self.d_history.append(d)
@@ -119,3 +119,6 @@ class WormFoodEnv:
 
         bound = self.num_parts + 2
         plt.axis([-bound, bound, -bound, bound])
+
+    def change_food(self):
+        self.food = Point(-self.food.x, self.food.y)
